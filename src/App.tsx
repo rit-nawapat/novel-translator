@@ -19,7 +19,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
-  
+
   // Reading Settings
   const [fontSize, setFontSize] = useState(parseInt(localStorage.getItem('font_size') || '18'))
   const [lineHeight, setLineHeight] = useState(parseFloat(localStorage.getItem('line_height') || '1.8'))
@@ -124,12 +124,12 @@ function App() {
       }
 
       // Merge Glossary into Prompt
-      const glossaryContext = glossary.length > 0 
+      const glossaryContext = glossary.length > 0
         ? `\n\n[GLOSSARY - MUST FOLLOW]:\n${glossary.map(g => `${g.src} -> ${g.dest}`).join('\n')}`
         : '';
 
       const apiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, // เปลี่ยนจาก 2.5 เป็น 2.0
         { contents: [{ parts: [{ text: `${systemPrompt}${glossaryContext}\n\n[Content to translate]:\n${cleanedText.substring(0, 15000)}` }] }] },
         { headers: { 'x-goog-api-key': apiKey } }
       )
@@ -149,17 +149,16 @@ function App() {
 
   return (
     <div className="min-h-screen transition-colors duration-500 bg-white dark:bg-[#050505] text-gray-900 dark:text-gray-300 font-sans">
-      
+
       {/* ---------------- CUSTOM TOAST ---------------- */}
       {toast && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className={`px-6 py-3 rounded-2xl backdrop-blur-xl border flex items-center gap-3 shadow-2xl ${
-            toast.type === 'error' 
-              ? 'bg-red-500/10 border-red-500/20 text-red-500' 
-              : toast.type === 'success'
-                ? 'bg-[#deff9a]/10 border-[#deff9a]/20 text-[#deff9a]'
-                : 'bg-white/10 border-white/20 text-white'
-          }`}>
+          <div className={`px-6 py-3 rounded-2xl backdrop-blur-xl border flex items-center gap-3 shadow-2xl ${toast.type === 'error'
+            ? 'bg-red-500/10 border-red-500/20 text-red-500'
+            : toast.type === 'success'
+              ? 'bg-[#deff9a]/10 border-[#deff9a]/20 text-[#deff9a]'
+              : 'bg-white/10 border-white/20 text-white'
+            }`}>
             {toast.type === 'error' ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             ) : (
@@ -197,7 +196,7 @@ function App() {
       <main className="max-w-3xl mx-auto px-6 pt-24 pb-48">
         {content ? (
           <article className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div 
+            <div
               style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight }}
               className="tracking-wide whitespace-pre-wrap font-light"
             >
@@ -232,12 +231,12 @@ function App() {
           {/* Config Section (Expandable) */}
           <div className={`px-4 sm:px-8 overflow-y-auto transition-all duration-500 ease-in-out ${isConfigOpen ? 'max-h-[70vh] py-8 border-b border-gray-100 dark:border-gray-800' : 'max-h-0 py-0 opacity-0 pointer-events-none'}`}>
             <div className="grid grid-cols-1 gap-6 custom-scrollbar">
-              
+
               {/* Reading Settings Slider */}
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 dark:border-white/5">
                 <div className="space-y-2">
                   <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold ml-1">Font Size: {fontSize}px</label>
-                  <input 
+                  <input
                     type="range" min="12" max="32" step="1"
                     className="w-full accent-[#deff9a]"
                     value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))}
@@ -245,7 +244,7 @@ function App() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold ml-1">Line Height: {lineHeight}</label>
-                  <input 
+                  <input
                     type="range" min="1.2" max="3" step="0.1"
                     className="w-full accent-[#deff9a]"
                     value={lineHeight} onChange={(e) => setLineHeight(parseFloat(e.target.value))}
@@ -273,7 +272,7 @@ function App() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between ml-1">
                   <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Glossary (Dictionary)</label>
-                  <button 
+                  <button
                     onClick={() => setGlossary([...glossary, { src: '', dest: '' }])}
                     className="text-[10px] bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md hover:bg-blue-500/20 transition-all"
                   >
@@ -284,22 +283,22 @@ function App() {
                   {glossary.map((g, idx) => (
                     <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-gray-50/50 dark:bg-white/5 p-2 rounded-xl">
                       <div className="flex gap-2 w-full items-center">
-                        <input 
-                          placeholder="Original" 
+                        <input
+                          placeholder="Original"
                           className="flex-1 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg p-2 text-[11px] outline-none"
                           value={g.src} onChange={(e) => {
                             const newG = [...glossary]; newG[idx].src = e.target.value; setGlossary(newG);
                           }}
                         />
                         <span className="text-gray-400 hidden sm:inline">→</span>
-                        <input 
-                          placeholder="Thai" 
+                        <input
+                          placeholder="Thai"
                           className="flex-1 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg p-2 text-[11px] outline-none"
                           value={g.dest} onChange={(e) => {
                             const newG = [...glossary]; newG[idx].dest = e.target.value; setGlossary(newG);
                           }}
                         />
-                        <button 
+                        <button
                           onClick={() => setGlossary(glossary.filter((_, i) => i !== idx))}
                           className="text-red-400 hover:text-red-500 p-1"
                         >
