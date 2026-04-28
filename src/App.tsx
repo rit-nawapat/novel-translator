@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
+// Helper functions for API Key Obfuscation (Base64)
+const obfuscateKey = (key: string) => btoa(key);
+const deobfuscateKey = (obfuscated: string) => {
+  if (!obfuscated) return '';
+  try {
+    return atob(obfuscated);
+  } catch (e) {
+    return '';
+  }
+};
+
+
 function App() {
   const [url, setUrl] = useState('')
   const [content, setContent] = useState('')
@@ -14,12 +26,18 @@ function App() {
   })
 
   // Persistence Logic สำหรับ API Key และ Prompt
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '')
+  // Persistence Logic สำหรับ API Key และ Prompt (ถอดรหัสออกมาใช้งานใน State)
+  const [apiKey, setApiKey] = useState(() => {
+    const saved = localStorage.getItem('gemini_api_key')
+    return saved ? deobfuscateKey(saved) : ''
+  })
+
   const [systemPrompt, setSystemPrompt] = useState(localStorage.getItem('system_prompt') || 'Translate this novel to Thai with professional literary style...')
 
   // จัดการ Side Effects: บันทึกข้อมูลและเปลี่ยน Class ของ HTML สำหรับ Dark Mode
   useEffect(() => {
-    localStorage.setItem('gemini_api_key', apiKey)
+    localStorage.setItem('gemini_api_key', obfuscateKey(apiKey))
+
     localStorage.setItem('system_prompt', systemPrompt)
 
     if (darkMode) {
@@ -49,14 +67,18 @@ function App() {
       if (!rawText) rawText = doc.body.textContent || ''
 
       const apiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        { contents: [{ parts: [{ text: `${systemPrompt}\n\nContent:\n${rawText.substring(0, 15000)}` }] }] }
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent`,
+        { contents: [{ parts: [{ text: `${systemPrompt}\n\nContent:\n${rawText.substring(0, 15000)}` }] }] },
+        { headers: { 'x-goog-api-key': apiKey } }
       )
+
       setContent(apiRes.data.candidates[0].content.parts[0].text)
       setIsConfigOpen(false)
     } catch (err) {
-      alert('Error: ตรวจสอบ API Key หรือ URL อีกครั้ง')
+      // ป้องกันการรั่วไหลของ Error วัตถุดิบลง Console โดยใช้ Custom Message
+      alert('ขออภัย! เกิดข้อผิดพลาดในการแปล: โปรดตรวจสอบ API Key หรือการเชื่อมต่ออินเทอร์เน็ตของคุณ')
     } finally {
+
       setLoading(false)
     }
   }
