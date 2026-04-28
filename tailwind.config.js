@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class', // *** สำคัญมาก: ต้องมีบรรทัดนี้ ***
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -8,13 +9,10 @@ export default {
     extend: {
       colors: {
         dark: {
-          bg: '#0a0a0a',
+          bg: '#050505',
           surface: '#111111',
           accent: '#deff9a',
         }
-      },
-      fontFamily: {
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
       }
     },
   },
