@@ -25,6 +25,11 @@ function App() {
   const [lineHeight, setLineHeight] = useState(parseFloat(localStorage.getItem('line_height') || '1.8'))
   const [nextUrl, setNextUrl] = useState<string | null>(null)
 
+  // Provider Selection
+  const [provider, setProvider] = useState<'gemini' | 'groq' | 'openrouter'>(
+    (localStorage.getItem('ai_provider') as any) || 'gemini'
+  )
+
   // Glossary State (Term Consistency)
   const [glossary, setGlossary] = useState<{ src: string, dest: string }[]>(() => {
     const saved = localStorage.getItem('novel_glossary')
@@ -65,6 +70,7 @@ function App() {
     localStorage.setItem('novel_glossary', JSON.stringify(glossary))
     localStorage.setItem('font_size', fontSize.toString())
     localStorage.setItem('line_height', lineHeight.toString())
+    localStorage.setItem('ai_provider', provider)
 
     if (darkMode) {
       document.documentElement.classList.add('dark')
@@ -73,7 +79,7 @@ function App() {
       document.documentElement.classList.remove('dark')
       localStorage.setItem('theme', 'light')
     }
-  }, [apiKey, systemPrompt, darkMode, glossary, fontSize, lineHeight])
+  }, [apiKey, systemPrompt, darkMode, glossary, fontSize, lineHeight, provider])
 
   const handleTranslate = async () => {
     if (!url || !apiKey) return showToast('โปรดใส่ URL และ API Key', 'error')
@@ -128,13 +134,32 @@ function App() {
         ? `\n\n[GLOSSARY - MUST FOLLOW]:\n${glossary.map(g => `${g.src} -> ${g.dest}`).join('\n')}`
         : '';
 
-      const apiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`, // เปลี่ยนจาก 2.5 เป็น 2.0
-        { contents: [{ parts: [{ text: `${systemPrompt}${glossaryContext}\n\n[Content to translate]:\n${cleanedText.substring(0, 15000)}` }] }] },
-        { headers: { 'x-goog-api-key': apiKey } }
-      )
+      const fullPrompt = `${systemPrompt}${glossaryContext}\n\n[Content to translate]:\n${cleanedText.substring(0, 15000)}`;
+      let translated = '';
 
-      const translated = apiRes.data.candidates[0].content.parts[0].text;
+      if (provider === 'groq') {
+        const apiRes = await axios.post(
+          'https://api.groq.com/openai/v1/chat/completions',
+          { model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: fullPrompt }], temperature: 0.3 },
+          { headers: { Authorization: `Bearer ${apiKey}` } }
+        );
+        translated = apiRes.data.choices[0].message.content;
+      } else if (provider === 'openrouter') {
+        const apiRes = await axios.post(
+          'https://openrouter.ai/api/v1/chat/completions',
+          { model: 'deepseek/deepseek-chat-v3-0324:free', messages: [{ role: 'user', content: fullPrompt }], temperature: 0.3 },
+          { headers: { Authorization: `Bearer ${apiKey}` } }
+        );
+        translated = apiRes.data.choices[0].message.content;
+      } else {
+        const apiRes = await axios.post(
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+          { contents: [{ parts: [{ text: fullPrompt }] }] },
+          { headers: { 'x-goog-api-key': apiKey } }
+        );
+        translated = apiRes.data.candidates[0].content.parts[0].text;
+      }
+
       setContent(translated);
       localStorage.setItem(cacheKey, translated); // Save to cache
       setIsConfigOpen(false)
@@ -252,10 +277,38 @@ function App() {
                 </div>
               </div>
 
+              {/* Provider Selector */}
               <div className="space-y-1.5">
-                <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold ml-1">Gemini API Key</label>
+                <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold ml-1">AI Provider</label>
+                <div className="flex gap-2">
+                  {(['gemini', 'groq', 'openrouter'] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => { setProvider(p); setApiKey(''); }}
+                      className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        provider === p
+                          ? 'bg-black dark:bg-[#deff9a] text-white dark:text-black shadow-lg'
+                          : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      {p === 'gemini' ? '🔷 Gemini' : p === 'groq' ? '⚡ Groq' : '🌐 OpenRouter'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[9px] text-gray-500 ml-1 mt-1">
+                  {provider === 'groq' ? '⚡ แนะนำ! Quota ฟรีสูงมาก (~14,400 req/day) → groq.com' 
+                   : provider === 'openrouter' ? '🌐 ฟรีหลาย model → openrouter.ai' 
+                   : '🔷 Gemini Free Tier → aistudio.google.com'}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-gray-400 uppercase tracking-widest font-bold ml-1">
+                  {provider === 'gemini' ? 'Gemini' : provider === 'groq' ? 'Groq' : 'OpenRouter'} API Key
+                </label>
                 <input
                   type="password"
+                  placeholder={provider === 'groq' ? 'gsk_...' : provider === 'openrouter' ? 'sk-or-...' : 'AIza...'}
                   className="w-full bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 text-xs font-mono dark:text-[#deff9a] focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                   value={apiKey} onChange={(e) => setApiKey(e.target.value)}
                 />
