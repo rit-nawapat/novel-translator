@@ -7,16 +7,36 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+
+# Build Output
+dist/
+dist-ssr/
+build/
+
+# Environment Variables (ไฟล์เก็บความลับ - สำคัญมาก!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.local
 
-# Editor directories and files
+# Tooling Caches (ไฟล์แคชชั่วคราว ไม่ต้องอัปโหลด)
+.vite/
+.eslintcache
+.stylelintcache
+
+# Testing Reports
+coverage/
+
+# Editor directories and OS files (ไฟล์ขยะจากโปรแกรมและระบบปฏิบัติการ)
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
