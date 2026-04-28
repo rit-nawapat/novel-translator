@@ -35,7 +35,7 @@ function App() {
     if (!url || !apiKey) return alert('โปรดใส่ URL และ API Key')
     setLoading(true)
     try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+      const proxyUrl = `https://cors-anywhere.azm.workers.dev/${url}`
       const res = await axios.get(proxyUrl)
       const parser = new DOMParser()
       const doc = parser.parseFromString(res.data.contents, 'text/html')
