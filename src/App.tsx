@@ -18,6 +18,13 @@ function App() {
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
 
   // โหลดค่า Theme จาก LocalStorage (Default เป็น Dark ตามสไตล์ NOC)
   const [darkMode, setDarkMode] = useState(() => {
@@ -50,7 +57,8 @@ function App() {
   }, [apiKey, systemPrompt, darkMode])
 
   const handleTranslate = async () => {
-    if (!url || !apiKey) return alert('โปรดใส่ URL และ API Key')
+    if (!url || !apiKey) return showToast('โปรดใส่ URL และ API Key', 'error')
+
     setLoading(true)
     try {
       const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`
@@ -67,17 +75,19 @@ function App() {
       if (!rawText) rawText = doc.body.textContent || ''
 
       const apiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
         { contents: [{ parts: [{ text: `${systemPrompt}\n\nContent:\n${rawText.substring(0, 15000)}` }] }] },
         { headers: { 'x-goog-api-key': apiKey } }
       )
 
       setContent(apiRes.data.candidates[0].content.parts[0].text)
       setIsConfigOpen(false)
+      showToast('แปลเนื้อหาเรียบร้อยแล้ว', 'success')
     } catch (err) {
       // ป้องกันการรั่วไหลของ Error วัตถุดิบลง Console โดยใช้ Custom Message
-      alert('ขออภัย! เกิดข้อผิดพลาดในการแปล: โปรดตรวจสอบ API Key หรือการเชื่อมต่ออินเทอร์เน็ตของคุณ')
+      showToast('ขออภัย! เกิดข้อผิดพลาดในการแปล: โปรดตรวจสอบ API Key หรือการเชื่อมต่ออินเทอร์เน็ตของคุณ', 'error')
     } finally {
+
 
       setLoading(false)
     }
@@ -85,6 +95,26 @@ function App() {
 
   return (
     <div className="min-h-screen transition-colors duration-500 bg-white dark:bg-[#050505] text-gray-900 dark:text-gray-300 font-sans">
+      
+      {/* ---------------- CUSTOM TOAST ---------------- */}
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className={`px-6 py-3 rounded-2xl backdrop-blur-xl border flex items-center gap-3 shadow-2xl ${
+            toast.type === 'error' 
+              ? 'bg-red-500/10 border-red-500/20 text-red-500' 
+              : toast.type === 'success'
+                ? 'bg-[#deff9a]/10 border-[#deff9a]/20 text-[#deff9a]'
+                : 'bg-white/10 border-white/20 text-white'
+          }`}>
+            {toast.type === 'error' ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            )}
+            <span className="text-sm font-bold tracking-wide">{toast.message}</span>
+          </div>
+        </div>
+      )}
 
       {/* ---------------- NAVIGATION / LOGO ---------------- */}
       <nav className="fixed top-0 left-0 right-0 h-16 flex items-center justify-between px-8 z-[90] bg-white/50 dark:bg-black/50 backdrop-blur-md border-b border-gray-100 dark:border-gray-900">
